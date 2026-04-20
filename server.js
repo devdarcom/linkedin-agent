@@ -65,7 +65,7 @@ async function handleRequest(req, res) {
 
   // ── POST /apify/run ────────────────────────────────────────────────────────
   if (url === '/apify/run' && req.method === 'POST') {
-    const { apifyKey, actorId, profileUrls, linkedinCookie } = payload;
+    const { apifyKey, actorId, profileUrls, linkedinCookie, maxPosts } = payload;
     if (!apifyKey || !actorId || !profileUrls) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Brak wymaganych pól: apifyKey, actorId, profileUrls' }));
@@ -74,7 +74,7 @@ async function handleRequest(req, res) {
 
     const input = {
       targetUrls: profileUrls,
-      maxPosts: 2,
+      maxPosts: maxPosts || 2,
       maxComments: 2,
       maxReactions: 0,
       includeQuotePosts: true,
