@@ -995,11 +995,7 @@ async function discoverBrand() {
     // Analyze with Claude
     const postsText = posts.slice(0, 30).map((p, i) =>
       `[${i+1}] ${p.text.slice(0, 500)}`
-    ).join('
-
----
-
-');
+    ).join('\n\n---\n\n');
 
     const prompt = `Jesteś ekspertem od personal brandingu. Przeanalizuj poniższe posty z LinkedIn tej osoby i opisz jej brand osobisty.
 
