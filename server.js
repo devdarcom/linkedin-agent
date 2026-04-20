@@ -74,7 +74,7 @@ async function handleRequest(req, res) {
 
     const input = {
       targetUrls: profileUrls,
-      maxPosts: maxPosts || 2,
+      maxPosts: maxPosts || 30,
       maxComments: 2,
       maxReactions: 0,
       includeQuotePosts: true,
