@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LinkedIn Brand Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #f0f0f5;
+    --muted: #6b6b80;
+    --accent: #6c63ff;
+    --accent2: #a78bfa;
+    --green: #22c55e;
+    --amber: #f59e0b;
+    --red: #f87171;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+  /* Layout */
+  .app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+  .sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 24px 0; display: flex; flex-direction: column; }
+  .main { overflow-y: auto; }
+
+  /* Sidebar */
+  .logo { padding: 0 20px 24px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .logo-mark { font-family: var(--mono); font-size: 11px; color: var(--accent2); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 4px; }
+  .logo-name { font-size: 17px; font-weight: 600; color: var(--text); }
+
+  .nav-section { padding: 0 12px; margin-bottom: 4px; }
+  .nav-label { font-size: 10px; font-weight: 500; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; cursor: pointer; font-size: 13.5px; color: var(--muted); transition: all 0.15s; border: none; background: none; width: 100%; text-align: left; }
+  .nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+  .nav-item.active { background: rgba(108,99,255,0.15); color: var(--accent2); }
+  .nav-icon { width: 16px; height: 16px; opacity: 0.7; flex-shrink: 0; }
+
+  .sidebar-footer { margin-top: auto; padding: 16px 20px 0; border-top: 1px solid var(--border); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .status-text { font-size: 12px; color: var(--muted); }
+
+  /* Main content */
+  .page { display: none; padding: 32px 36px; }
+  .page.active { display: block; }
+
+  .page-header { margin-bottom: 28px; }
+  .page-title { font-size: 22px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .page-subtitle { font-size: 14px; color: var(--muted); }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+  .card-title { font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+
+  /* Form elements */
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  input, textarea, select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px;
+    color: var(--text); font-family: var(--sans); font-size: 14px; padding: 10px 14px;
+    outline: none; transition: border 0.15s;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: vertical; line-height: 1.6; }
+  .input-mono { font-family: var(--mono); font-size: 13px; }
+  .form-row { margin-bottom: 16px; }
+  .form-hint { font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+  /* Buttons */
+  .btn { padding: 10px 18px; border-radius: 8px; font-family: var(--sans); font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #7c75ff; }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border2); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--border2); background: rgba(255,255,255,0.04); }
+  .btn-sm { padding: 7px 13px; font-size: 13px; }
+  .btn-danger { background: rgba(248,113,113,0.12); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+  .btn-danger:hover { background: rgba(248,113,113,0.2); }
+
+  /* Tags */
+  .tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+  .tag-green { background: rgba(34,197,94,0.1); color: #4ade80; }
+  .tag-amber { background: rgba(245,158,11,0.1); color: #fbbf24; }
+  .tag-red { background: rgba(248,113,113,0.1); color: var(--red); }
+  .tag-purple { background: rgba(108,99,255,0.15); color: var(--accent2); }
+  .tag-gray { background: rgba(255,255,255,0.06); color: var(--muted); }
+
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* Stat cards */
+  .stat { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .stat-val { font-size: 26px; font-weight: 600; color: var(--text); line-height: 1; margin-bottom: 4px; }
+  .stat-label { font-size: 12px; color: var(--muted); }
+
+  /* People list */
+  .person-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .person-row:last-child { border-bottom: none; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+  .person-info { flex: 1; min-width: 0; }
+  .person-name { font-size: 14px; font-weight: 500; color: var(--text); }
+  .person-meta { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .person-url { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+  /* Briefing cards */
+  .brief-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; transition: border-color 0.15s; }
+  .brief-card:hover { border-color: var(--border2); }
+  .brief-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .brief-post { font-size: 13.5px; color: var(--muted); line-height: 1.6; margin-bottom: 12px; padding: 10px 14px; background: var(--surface2); border-radius: 8px; border-left: 3px solid var(--border2); }
+  .brief-suggestion { font-size: 14px; color: var(--text); line-height: 1.6; margin-bottom: 12px; }
+  .brief-footer { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .brief-topic { font-size: 12px; color: var(--accent2); background: rgba(108,99,255,0.1); padding: 3px 9px; border-radius: 20px; }
+
+  /* Progress */
+  .progress-bar { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s; }
+
+  /* Log */
+  .log-entry { font-family: var(--mono); font-size: 12px; color: var(--muted); padding: 4px 0; border-bottom: 1px solid var(--border); }
+  .log-entry .ts { color: var(--accent2); margin-right: 8px; }
+  .log-entry .ok { color: var(--green); }
+  .log-entry .warn { color: var(--amber); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* Loading spinner */
+  .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.1); border-top-color: var(--accent2); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+  .flex { display: flex; }
+  .gap-8 { gap: 8px; }
+  .gap-12 { gap: 12px; }
+  .align-center { align-items: center; }
+  .justify-between { justify-content: space-between; }
+  .mb-8 { margin-bottom: 8px; }
+  .mb-16 { margin-bottom: 16px; }
+  .mt-16 { margin-top: 16px; }
+  .empty { text-align: center; padding: 48px 20px; color: var(--muted); font-size: 14px; }
+  .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+
+  @media (max-width: 768px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .page { padding: 20px; }
+    .grid-3 { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">Brand Agent</div>
+    <div class="logo-name">LinkedIn Monitor</div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Menu</div>
+    <button class="nav-item active" onclick="showPage('dashboard')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" onclick="showPage('briefing')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h10"/></svg>
+      Briefing dzienny
+    </button>
+    <button class="nav-item" onclick="showPage('people')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5"/><path d="M11 3c1.5 0 3 1 3 3s-1.5 3-3 3"/><path d="M15 14c0-2-1-3.5-2.5-4"/></svg>
+      Obserwowane osoby
+    </button>
+    <button class="nav-item" onclick="showPage('brand')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="8,1 10,6 15,6 11,9 13,14 8,11 3,14 5,9 1,6 6,6"/></svg>
+      Wiedza brandowa
+    </button>
+    <button class="nav-item" onclick="showPage('settings')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/></svg>
+      Ustawienia API
+    </button>
+  </div>
+
+  <div class="sidebar-footer">
+    <span class="status-dot"></span>
+    <span class="status-text" id="sidebar-status">Gotowy</span>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <div class="page-title">Dashboard</div>
+      <div class="page-subtitle" id="today-date"></div>
+    </div>
+
+    <div class="grid-3 mb-16">
+      <div class="stat"><div class="stat-val" id="stat-people">0</div><div class="stat-label">Obserwowane osoby</div></div>
+      <div class="stat"><div class="stat-val" id="stat-posts">—</div><div class="stat-label">Posty z ostatnich 24h</div></div>
+      <div class="stat"><div class="stat-val" id="stat-suggestions">—</div><div class="stat-label">Sugestie na dziś</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Uruchom analizę</div>
+      <p style="font-size:14px;color:var(--muted);margin-bottom:16px;line-height:1.6;">Kliknij aby pobrać najnowsze posty i komentarze z LinkedIn przez Apify, a następnie przeanalizować je pod kątem Twojego brandu.</p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="run-btn" onclick="runAnalysis()">Uruchom agenta teraz</button>
+        <button class="btn btn-ghost" onclick="showPage('settings')">Skonfiguruj API</button>
+        <span id="run-status" style="font-size:13px;color:var(--muted);"></span>
+      </div>
+      <div id="progress-wrap" style="display:none;margin-top:16px;">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px;" id="progress-label">Pobieranie danych...</div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Log ostatniej sesji</div>
+      <div id="log-container">
+        <div class="empty"><div class="empty-icon">◌</div>Brak aktywności. Uruchom agenta powyżej.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BRIEFING -->
+  <div class="page" id="page-briefing">
+    <div class="page-header flex justify-between align-center">
+      <div>
+        <div class="page-title">Briefing dzienny</div>
+        <div class="page-subtitle">Kogo warto dziś zaczepić i o czym</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <select id="filter-priority" style="width:auto;font-size:13px;padding:8px 12px;" onchange="renderBriefing()">
+          <option value="all">Wszystkie</option>
+          <option value="high">Wysoki priorytet</option>
+          <option value="medium">Średni priorytet</option>
+        </select>
+      </div>
+    </div>
+    <div id="briefing-container">
+      <div class="empty"><div class="empty-icon">◌</div>Brak briefingu. Uruchom agenta na Dashboardzie.</div>
+    </div>
+  </div>
+
+  <!-- PEOPLE -->
+  <div class="page" id="page-people">
+    <div class="page-header flex justify-between align-center">
+      <div>
+        <div class="page-title">Obserwowane osoby</div>
+        <div class="page-subtitle">Max 50 profili LinkedIn</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="document.getElementById('add-person-form').style.display='block'">+ Dodaj osobę</button>
+    </div>
+
+    <div class="card" id="add-person-form" style="display:none;margin-bottom:16px;">
+      <div class="card-title">Nowa osoba</div>
+      <div class="grid-2">
+        <div class="form-row">
+          <label>Imię i nazwisko</label>
+          <input type="text" id="new-name" placeholder="Jan Kowalski">
+        </div>
+        <div class="form-row">
+          <label>URL profilu LinkedIn</label>
+          <input type="text" id="new-url" class="input-mono" placeholder="https://linkedin.com/in/...">
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Notatka (opcjonalnie)</label>
+        <input type="text" id="new-note" placeholder="np. CEO Acme, klient, partner...">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="addPerson()">Dodaj</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('add-person-form').style.display='none'">Anuluj</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="people-list"></div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <button class="btn btn-ghost btn-sm" onclick="importPeopleCSV()">Importuj CSV</button>
+      <span style="font-size:12px;color:var(--muted);margin-left:10px;">Format: nazwa,url_profilu (jeden na linię)</span>
+    </div>
+  </div>
+
+  <!-- BRAND -->
+  <div class="page" id="page-brand">
+    <div class="page-header">
+      <div class="page-title">Wiedza brandowa</div>
+      <div class="page-subtitle">Agent używa tych informacji aby ocenić trafność Twoich odpowiedzi</div>
+    </div>
+
+    <div class="card mb-16">
+      <div class="card-title">Twoje główne tematy</div>
+      <div class="form-row">
+        <textarea id="brand-topics" rows="4" placeholder="np. przywództwo i zarządzanie zespołem, transformacja cyfrowa w HR, employer branding, przyszłość pracy, AI w rekrutacji..."></textarea>
+        <div class="form-hint">Jeden temat na linię lub oddzielone przecinkami</div>
+      </div>
+    </div>
+
+    <div class="card mb-16">
+      <div class="card-title">Twoje wartości i narracje</div>
+      <div class="form-row">
+        <textarea id="brand-values" rows="4" placeholder="np. wierzę w przywództwo oparte na empatii, human-first approach w technologii, budowanie kultury opartej na zaufaniu..."></textarea>
+      </div>
+    </div>
+
+    <div class="card mb-16">
+      <div class="card-title">Twoja ekspertyza i doświadczenie</div>
+      <div class="form-row">
+        <textarea id="brand-expertise" rows="4" placeholder="np. 15 lat w HR, wdrożyłem systemy ATS w 30+ firmach, mentor w programach akceleracyjnych..."></textarea>
+      </div>
+    </div>
+
+    <div class="card mb-16">
+      <div class="card-title">Ton komunikacji</div>
+      <div class="form-row">
+        <textarea id="brand-tone" rows="3" placeholder="np. merytoryczny ale przystępny, dzielę się konkretnymi przykładami, unikam korporacyjnego żargonu, czasem prowokuję do myślenia..."></textarea>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="saveBrand()">Zapisz wiedzę brandową</button>
+    <span id="brand-saved" style="font-size:13px;color:var(--green);margin-left:12px;display:none;">✓ Zapisano</span>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="page-settings">
+    <div class="page-header">
+      <div class="page-title">Ustawienia API</div>
+      <div class="page-subtitle">Klucze API potrzebne do działania agenta</div>
+    </div>
+
+    <div class="card mb-16">
+      <div class="card-title">Apify</div>
+      <div class="form-row">
+        <label>Apify API Token</label>
+        <input type="password" id="apify-key" class="input-mono" placeholder="apify_api_...">
+        <div class="form-hint">Znajdziesz go na <strong style="color:var(--accent2)">apify.com → Settings → Integrations</strong></div>
+      </div>
+      <div class="form-row">
+        <label>LinkedIn Actor ID</label>
+        <input type="text" id="apify-actor" class="input-mono" placeholder="np. curious_coder/linkedin-profile-scraper" value="curious_coder/linkedin-profile-scraper">
+        <div class="form-hint">Rekomendowany: <code style="color:var(--accent2)">curious_coder/linkedin-profile-scraper</code> lub <code style="color:var(--accent2)">apify/linkedin-scraper</code></div>
+      </div>
+      <div class="form-row">
+        <label>LinkedIn cookie <code style="color:var(--accent2);font-size:12px;">li_at</code></label>
+        <input type="password" id="linkedin-cookie" class="input-mono" placeholder="AQEDATx... (wartość ciasteczka li_at)">
+        <div class="form-hint" style="line-height:1.7;">
+          Wymagane przez LinkedIn scraper. Jak znaleźć:<br>
+          <strong style="color:var(--text)">Chrome:</strong> F12 → Application → Cookies → linkedin.com → znajdź <code style="color:var(--accent2)">li_at</code> → skopiuj Value<br>
+          <strong style="color:var(--text)">Firefox:</strong> F12 → Storage → Cookies → linkedin.com → znajdź <code style="color:var(--accent2)">li_at</code> → skopiuj Value
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-16">
+      <div class="card-title">Anthropic (Claude)</div>
+      <div class="form-row">
+        <label>Anthropic API Key</label>
+        <input type="password" id="anthropic-key" class="input-mono" placeholder="sk-ant-...">
+        <div class="form-hint">Znajdziesz go na <strong style="color:var(--accent2)">console.anthropic.com → API Keys</strong></div>
+      </div>
+    </div>
+
+    <div class="card mb-16">
+      <div class="card-title">Harmonogram</div>
+      <div class="form-row">
+        <label>Godzina codziennej analizy</label>
+        <input type="time" id="schedule-time" value="07:00" style="width:160px;">
+        <div class="form-hint">Briefing będzie gotowy każdego dnia o tej godzinie (wymaga otwartej karty przeglądarki)</div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="saveSettings()">Zapisz ustawienia</button>
+    <button class="btn btn-ghost" style="margin-left:8px;" onclick="testApify()">Testuj połączenie Apify</button>
+    <span id="settings-saved" style="font-size:13px;color:var(--green);margin-left:12px;display:none;">✓ Zapisano</span>
+    <span id="settings-test" style="font-size:13px;margin-left:12px;display:none;"></span>
+  </div>
+
+</main>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let state = {
+  people: [],
+  brand: { topics:'', values:'', expertise:'', tone:'' },
+  settings: { apifyKey:'', apifyActor:'curious_coder/linkedin-profile-scraper', anthropicKey:'', scheduleTime:'07:00' },
+  briefing: [],
+  logs: []
+};
+
+function load() {
+  try {
+    const saved = localStorage.getItem('li-agent-state');
+    if (saved) state = { ...state, ...JSON.parse(saved) };
+  } catch(e) {}
+}
+function save() {
+  try { localStorage.setItem('li-agent-state', JSON.stringify(state)); } catch(e) {}
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const btns = document.querySelectorAll('.nav-item');
+  btns.forEach(b => { if (b.getAttribute('onclick') && b.getAttribute('onclick').includes(id)) b.classList.add('active'); });
+  if (id === 'people') renderPeople();
+  if (id === 'briefing') renderBriefing();
+  if (id === 'brand') loadBrandForm();
+  if (id === 'settings') loadSettingsForm();
+}
+
+// ─── DATE ────────────────────────────────────────────────────────────────────
+function initDate() {
+  const d = new Date();
+  const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
+  document.getElementById('today-date').textContent = d.toLocaleDateString('pl-PL', opts);
+}
+
+// ─── PEOPLE ──────────────────────────────────────────────────────────────────
+const AVATAR_COLORS = [
+  ['#1a1a4e','#818cf8'],['#1a3a2a','#4ade80'],['#3a1a1a','#f87171'],
+  ['#1a2e3a','#38bdf8'],['#2a1a3a','#c084fc'],['#3a2a1a','#fbbf24']
+];
+
+function addPerson() {
+  const name = document.getElementById('new-name').value.trim();
+  const url = document.getElementById('new-url').value.trim();
+  const note = document.getElementById('new-note').value.trim();
+  if (!name || !url) return alert('Podaj imię i URL profilu');
+  if (state.people.length >= 50) return alert('Maksymalna liczba osób to 50');
+  if (!url.includes('linkedin.com/in/')) return alert('Podaj poprawny URL profilu LinkedIn (linkedin.com/in/...)');
+  state.people.push({ id: Date.now(), name, url, note });
+  save();
+  document.getElementById('new-name').value = '';
+  document.getElementById('new-url').value = '';
+  document.getElementById('new-note').value = '';
+  document.getElementById('add-person-form').style.display = 'none';
+  renderPeople();
+  updateStats();
+}
+
+function removePerson(id) {
+  state.people = state.people.filter(p => p.id !== id);
+  save();
+  renderPeople();
+  updateStats();
+}
+
+function renderPeople() {
+  const el = document.getElementById('people-list');
+  if (!state.people.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">◌</div>Brak osób. Dodaj do 50 profili LinkedIn.</div>';
+    return;
+  }
+  el.innerHTML = state.people.map((p, i) => {
+    const initials = p.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+    const [bg, fg] = AVATAR_COLORS[i % AVATAR_COLORS.length];
+    const handle = p.url.replace('https://www.linkedin.com/in/','').replace('https://linkedin.com/in/','').replace(/\/$/,'');
+    return `<div class="person-row">
+      <div class="avatar" style="background:${bg};color:${fg}">${initials}</div>
+      <div class="person-info">
+        <div class="person-name">${p.name}</div>
+        <div class="person-meta">${p.note || ''}</div>
+        <div class="person-url">linkedin.com/in/${handle}</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="removePerson(${p.id})">Usuń</button>
+    </div>`;
+  }).join('');
+}
+
+function importPeopleCSV() {
+  const csv = prompt('Wklej CSV (format: nazwa,url_profilu, jeden na linię):');
+  if (!csv) return;
+  const lines = csv.split('\n').filter(l => l.trim());
+  let added = 0;
+  lines.forEach(line => {
+    const parts = line.split(',');
+    if (parts.length >= 2 && state.people.length < 50) {
+      const name = parts[0].trim();
+      const url = parts[1].trim();
+      if (name && url.includes('linkedin.com')) {
+        state.people.push({ id: Date.now() + Math.random(), name, url, note: parts[2]?.trim() || '' });
+        added++;
+      }
+    }
+  });
+  save();
+  renderPeople();
+  updateStats();
+  alert(`Dodano ${added} osób.`);
+}
+
+// ─── BRAND ───────────────────────────────────────────────────────────────────
+function loadBrandForm() {
+  document.getElementById('brand-topics').value = state.brand.topics || '';
+  document.getElementById('brand-values').value = state.brand.values || '';
+  document.getElementById('brand-expertise').value = state.brand.expertise || '';
+  document.getElementById('brand-tone').value = state.brand.tone || '';
+}
+
+function saveBrand() {
+  state.brand.topics = document.getElementById('brand-topics').value;
+  state.brand.values = document.getElementById('brand-values').value;
+  state.brand.expertise = document.getElementById('brand-expertise').value;
+  state.brand.tone = document.getElementById('brand-tone').value;
+  save();
+  const s = document.getElementById('brand-saved');
+  s.style.display = 'inline';
+  setTimeout(() => s.style.display = 'none', 2500);
+}
+
+// ─── SETTINGS ────────────────────────────────────────────────────────────────
+function loadSettingsForm() {
+  document.getElementById('apify-key').value = state.settings.apifyKey || '';
+  document.getElementById('apify-actor').value = state.settings.apifyActor || 'curious_coder/linkedin-profile-scraper';
+  document.getElementById('linkedin-cookie').value = state.settings.linkedinCookie || '';
+  document.getElementById('anthropic-key').value = state.settings.anthropicKey || '';
+  document.getElementById('schedule-time').value = state.settings.scheduleTime || '07:00';
+}
+
+function saveSettings() {
+  state.settings.apifyKey = document.getElementById('apify-key').value.trim();
+  state.settings.apifyActor = document.getElementById('apify-actor').value.trim();
+  state.settings.linkedinCookie = document.getElementById('linkedin-cookie').value.trim();
+  state.settings.anthropicKey = document.getElementById('anthropic-key').value.trim();
+  state.settings.scheduleTime = document.getElementById('schedule-time').value;
+  save();
+  const s = document.getElementById('settings-saved');
+  s.style.display = 'inline';
+  setTimeout(() => s.style.display = 'none', 2500);
+}
+
+async function testApify() {
+  const key = document.getElementById('apify-key').value.trim();
+  if (!key) return alert('Najpierw wpisz Apify API Token');
+  const el = document.getElementById('settings-test');
+  el.style.display = 'inline';
+  el.style.color = 'var(--muted)';
+  el.textContent = '⏳ Testowanie...';
+  try {
+    const r = await fetch(`${BACKEND}/apify/test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apifyKey: key })
+    });
+    const d = await r.json();
+    if (d.data?.username) {
+      el.style.color = 'var(--green)';
+      el.textContent = `✓ Połączono jako ${d.data.username}`;
+    } else {
+      el.style.color = 'var(--red)';
+      el.textContent = '✗ Nieprawidłowy token Apify';
+    }
+  } catch(e) {
+    el.style.color = 'var(--red)';
+    el.textContent = '✗ Serwer niedostępny — uruchom: node server.js';
+  }
+}
+
+// ─── AGENT / ANALYSIS ────────────────────────────────────────────────────────
+function addLog(msg, type = '') {
+  const ts = new Date().toLocaleTimeString('pl-PL');
+  state.logs.unshift({ ts, msg, type });
+  if (state.logs.length > 30) state.logs.pop();
+  renderLogs();
+}
+
+function renderLogs() {
+  const el = document.getElementById('log-container');
+  if (!state.logs.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">◌</div>Brak aktywności.</div>';
+    return;
+  }
+  el.innerHTML = state.logs.map(l =>
+    `<div class="log-entry"><span class="ts">${l.ts}</span><span class="${l.type}">${l.msg}</span></div>`
+  ).join('');
+}
+
+function setProgress(pct, label) {
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = label;
+}
+
+async function runAnalysis() {
+  if (!state.settings.apifyKey) {
+    showPage('settings');
+    alert('Najpierw skonfiguruj Apify API Token w Ustawieniach.');
+    return;
+  }
+  if (!state.settings.anthropicKey) {
+    showPage('settings');
+    alert('Najpierw skonfiguruj Anthropic API Key w Ustawieniach.');
+    return;
+  }
+  if (!state.people.length) {
+    showPage('people');
+    alert('Dodaj najpierw osoby do obserwowania.');
+    return;
+  }
+  if (!state.brand.topics) {
+    showPage('brand');
+    alert('Uzupełnij najpierw wiedzę brandową.');
+    return;
+  }
+
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Analizuję...';
+  document.getElementById('progress-wrap').style.display = 'block';
+  document.getElementById('run-status').textContent = '';
+  state.logs = [];
+
+  try {
+    addLog('Uruchamianie agenta...', 'ok');
+    setProgress(5, 'Przygotowanie żądania do Apify...');
+
+    // Step 1: Run Apify actor
+    const profileUrls = state.people.map(p => p.url);
+    addLog(`Wysyłanie ${profileUrls.length} profili do Apify...`);
+    setProgress(15, `Pobieranie danych z LinkedIn (${profileUrls.length} profili)...`);
+
+    let posts = [];
+    try {
+      posts = await fetchLinkedInPosts(profileUrls);
+      addLog(`Pobrano ${posts.length} wpisów z LinkedIn`, 'ok');
+    } catch(e) {
+      addLog('Błąd Apify: ' + e.message, 'warn');
+      addLog('Używam danych demo do podglądu...', 'warn');
+      posts = generateDemoPosts();
+    }
+
+    setProgress(50, 'Analizowanie przez Claude...');
+    addLog(`Wysyłanie ${posts.length} wpisów do analizy brandowej...`);
+
+    // Step 2: Analyze with Claude
+    const briefing = await analyzeWithClaude(posts);
+    addLog(`Wygenerowano ${briefing.length} sugestii`, 'ok');
+
+    setProgress(95, 'Finalizowanie briefingu...');
+    state.briefing = briefing;
+    save();
+    updateStats();
+
+    setProgress(100, 'Gotowe!');
+    addLog('Briefing gotowy!', 'ok');
+    document.getElementById('run-status').style.color = 'var(--green)';
+    document.getElementById('run-status').textContent = `✓ Gotowe — ${briefing.length} sugestii`;
+
+    setTimeout(() => {
+      document.getElementById('progress-wrap').style.display = 'none';
+      showPage('briefing');
+    }, 1200);
+
+  } catch(e) {
+    addLog('Błąd: ' + e.message, 'warn');
+    document.getElementById('run-status').style.color = 'var(--red)';
+    document.getElementById('run-status').textContent = '✗ ' + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Uruchom agenta teraz';
+  }
+}
+
+// ─── BACKEND PROXY ───────────────────────────────────────────────────────────
+const BACKEND = 'http://localhost:3000';
+
+// ─── APIFY INTEGRATION ───────────────────────────────────────────────────────
+async function fetchLinkedInPosts(profileUrls) {
+  const token = state.settings.apifyKey;
+  const actor = state.settings.apifyActor;
+
+  const runResp = await fetch(`${BACKEND}/apify/run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      apifyKey: token,
+      actorId: actor,
+      profileUrls,
+      linkedinCookie: state.settings.linkedinCookie || undefined
+    })
+  });
+
+  if (!runResp.ok) throw new Error(`Serwer niedostępny — uruchom: node server.js`);
+  const runData = await runResp.json();
+  if (runData.error) throw new Error(runData.error.message || JSON.stringify(runData.error));
+  const runId = runData.data?.id;
+  if (!runId) throw new Error('Apify nie zwrócił runId: ' + JSON.stringify(runData));
+
+  addLog(`Apify Run ID: ${runId}`, 'ok');
+
+  let attempts = 0;
+  while (attempts < 36) {
+    await sleep(5000);
+    attempts++;
+    setProgress(15 + Math.min(attempts * 1.1, 30), `Oczekiwanie na Apify... (${attempts * 5}s)`);
+
+    const statusResp = await fetch(`${BACKEND}/apify/status/${runId}/${token}`);
+    const statusData = await statusResp.json();
+    const status = statusData.data?.status;
+    addLog(`Apify status: ${status}`);
+
+    if (status === 'SUCCEEDED') {
+      const datasetId = statusData.data?.defaultDatasetId;
+      const itemsResp = await fetch(`${BACKEND}/apify/dataset/${datasetId}/${token}`);
+      const items = await itemsResp.json();
+      return normalizeApifyPosts(Array.isArray(items) ? items : []);
+    }
+    if (status === 'FAILED' || status === 'ABORTED') throw new Error(`Apify actor ${status}`);
+  }
+  throw new Error('Timeout — Apify nie odpowiedział w ciągu 3 minut');
+}
+
+function normalizeApifyPosts(items) {
+  return items.map(item => {
+    // author może być obiektem lub stringiem
+    const author = item.author || {};
+    const authorName = typeof author === 'string' ? author
+      : author.name || author.fullName || item.authorName || item.profileName || 'Nieznany';
+    const authorUrl = author.profileUrl || author.url || item.authorUrl || item.profileUrl || '';
+
+    // tekst posta
+    const text = item.content || item.text || item.postText || item.description || '';
+
+    // URL posta — kluczowe pole to linkedinUrl
+    const url = item.linkedinUrl || item.linkedInUrl || item.postUrl || item.url || '';
+
+    // data
+    const date = item.header?.postedAt || item.postedAt || item.publishedAt || item.date || '';
+
+    // engagement
+    const engagement = item.engagement || {};
+    const reactions = engagement.likes || engagement.totalReactions || item.likeCount || 0;
+    const comments = engagement.comments || item.commentsCount || 0;
+
+    return { authorName, authorUrl, text, type: 'post', date, url, reactions, comments };
+  }).filter(p => p.text && p.text.length > 20);
+}
+
+// ─── CLAUDE ANALYSIS ─────────────────────────────────────────────────────────
+async function analyzeWithClaude(posts) {
+  const brandContext = `
+TWOJE TEMATY BRANDOWE:
+${state.brand.topics}
+
+TWOJE WARTOŚCI I NARRACJE:
+${state.brand.values}
+
+TWOJA EKSPERTYZA:
+${state.brand.expertise}
+
+TWÓJ TON KOMUNIKACJI:
+${state.brand.tone}
+`.trim();
+
+  const postsText = posts.slice(0, 60).map((p, i) =>
+    `[${i+1}] AUTOR: ${p.authorName}\nTYP: ${p.type === 'comment' ? 'komentarz' : 'post'}\nTREŚĆ: ${p.text.slice(0, 400)}\nDATA: ${p.date}\nURL: ${p.url}`
+  ).join('\n\n---\n\n');
+
+  const prompt = `Jesteś asystentem personal brandingu na LinkedIn. Przeanalizuj poniższe wpisy z ostatnich 24h i wskaż, na które warto odpowiedzieć w kontekście podanej wiedzy brandowej.
+
+${brandContext}
+
+WPISY DO ANALIZY:
+${postsText}
+
+Zwróć TYLKO tablicę JSON (bez żadnego innego tekstu, bez markdown, bez backticks) z sugestiami w formacie:
+[
+  {
+    "authorName": "Imię Nazwisko",
+    "authorUrl": "url profilu",
+    "postExcerpt": "fragment wpisu (max 200 znaków)",
+    "priority": "high|medium|low",
+    "topic": "krótka etykieta tematu (max 4 słowa)",
+    "suggestion": "Konkretna sugestia co i jak skomentować (2-4 zdania, odwołując się do wiedzy brandowej)",
+    "angle": "Pod jakim kątem odpowiedzieć (1 zdanie)",
+    "postUrl": "skopiuj dokładnie URL wpisu z danych wejściowych"
+  }
+]
+
+Uwzględnij tylko wpisy gdzie masz COŚ KONKRETNEGO do powiedzenia na bazie wiedzy brandowej. Pomiń wpisy niezwiązane. Priorytet 'high' = wpis bardzo pasuje do Twojej ekspertyzy i to dobra okazja.
+WAŻNE: pole postUrl musi zawierać dokładny URL wpisu z danych wejściowych — nie wymyślaj URLi.`;
+
+  const response = await fetch(`${BACKEND}/claude`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      anthropicKey: state.settings.anthropicKey,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+
+  if (!response.ok) throw new Error('Serwer niedostępny — uruchom: node server.js');
+  const data = await response.json();
+  const text = data.content?.[0]?.text || '[]';
+  const clean = text.replace(/```json|```/g, '').trim();
+  return JSON.parse(clean);
+}
+
+// ─── DEMO DATA ────────────────────────────────────────────────────────────────
+function generateDemoPosts() {
+  const demos = [
+    { authorName: 'Anna Kowalska', text: 'Właśnie skończyłam wdrożenie nowego systemu onboardingu — kluczem okazało się zaangażowanie managera od pierwszego dnia. Czy znacie inne sposoby na szybką integrację nowych pracowników?', type: 'post' },
+    { authorName: 'Marek Wiśniewski', text: 'Transformacja cyfrowa to nie tylko technologia — to przede wszystkim zmiana kultury organizacyjnej. Po 3 latach widzę, że firmy które to rozumieją wygrywają z konkurencją.', type: 'post' },
+    { authorName: 'Karolina Nowak', text: 'AI w rekrutacji: błogosławieństwo czy przekleństwo? Właśnie odrzucono doskonałego kandydata przez algorytm. Czas na rozmowę o etyce w HR Tech.', type: 'post' },
+    { authorName: 'Piotr Zając', text: 'Leadership w czasach kryzysu wymaga czegoś więcej niż KPI. Empatia to nie soft skill — to core competency każdego lidera w 2024.', type: 'post' },
+    { authorName: 'Ewa Lewandowska', text: 'Employer branding to nie plakaty z uśmiechniętymi pracownikami. To codzienne doświadczenie ludzi w firmie. Jak mierzycie autentyczność swojego EVP?', type: 'post' },
+    { authorName: 'Tomasz Dąbrowski', text: 'Remote work po 4 latach: większość firm wróciła do biura ale najlepsi specjaliści wciąż wybierają elastyczność. Jak budujecie kulturę w modelu hybrydowym?', type: 'comment' }
+  ];
+  return demos.map((d, i) => ({
+    ...d,
+    authorUrl: `https://linkedin.com/in/demo-${i}`,
+    date: new Date().toISOString(),
+    url: `https://linkedin.com/feed/update/demo-${i}`,
+    reactions: Math.floor(Math.random() * 200),
+    comments: Math.floor(Math.random() * 30)
+  }));
+}
+
+// ─── BRIEFING RENDER ─────────────────────────────────────────────────────────
+function renderBriefing() {
+  const el = document.getElementById('briefing-container');
+  const filter = document.getElementById('filter-priority').value;
+
+  if (!state.briefing.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">◌</div>Brak briefingu. Uruchom agenta na Dashboardzie.</div>';
+    return;
+  }
+
+  let items = state.briefing;
+  if (filter !== 'all') items = items.filter(b => b.priority === filter);
+
+  const priorityLabel = { high: 'Wysoki priorytet', medium: 'Średni priorytet', low: 'Niski priorytet' };
+  const priorityTag = { high: 'tag-green', medium: 'tag-amber', low: 'tag-gray' };
+
+  el.innerHTML = items.map(b => {
+    const initials = b.authorName.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    return `<div class="brief-card">
+      <div class="brief-header">
+        <div class="avatar" style="width:34px;height:34px;background:var(--surface2);color:var(--muted);font-size:12px;">${initials}</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:500;color:var(--text)">${b.authorName}</div>
+          <div style="font-size:12px;color:var(--muted)">${b.postUrl ? `<a href="${b.postUrl}" target="_blank" style="color:var(--accent2)">Zobacz wpis ↗</a>` : 'Brak linku'}</div>
+        </div>
+        <span class="tag ${priorityTag[b.priority] || 'tag-gray'}">${priorityLabel[b.priority] || b.priority}</span>
+      </div>
+      <div class="brief-post">"${b.postExcerpt}"</div>
+      <div style="font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">Sugestia odpowiedzi</div>
+      <div class="brief-suggestion">${b.suggestion}</div>
+      ${b.angle ? `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;font-style:italic">${b.angle}</div>` : ''}
+      <div class="brief-footer">
+        ${b.topic ? `<span class="brief-topic">${b.topic}</span>` : ''}
+        ${b.postUrl ? `<a href="${b.postUrl}" target="_blank" style="font-size:12px;color:var(--accent2);margin-left:auto;text-decoration:none;font-family:var(--mono);">↗ ${b.postUrl.length > 60 ? b.postUrl.slice(0,60)+'...' : b.postUrl}</a>` : '<span style="font-size:12px;color:var(--muted);margin-left:auto;">brak URL posta</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── STATS ────────────────────────────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('stat-people').textContent = state.people.length;
+  document.getElementById('stat-suggestions').textContent = state.briefing.length || '—';
+  document.getElementById('sidebar-status').textContent = state.briefing.length ? `${state.briefing.length} sugestii dziś` : 'Gotowy';
+}
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+load();
+initDate();
+updateStats();
+renderLogs();
+</script>
+</body>
+</html>
